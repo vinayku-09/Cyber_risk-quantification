@@ -4,86 +4,93 @@ import { Bug, ShieldAlert } from 'lucide-react'
 import { Badge, Card, Table, type Column } from '../components/ui'
 import { vulnerabilities } from '../data/mockData'
 import { accentHex, chart, colors } from '../constants/theme'
-import { formatINR, riskAccent } from '../utils'
+import { useCurrency } from '../context/CurrencyContext'
+import { riskAccent } from '../utils'
 import type { AccentColor, Vulnerability } from '../types'
 
+type MoneyFormatter = ReturnType<typeof useCurrency>['format']
+
 const cvssTone = (cvss: number): AccentColor => (cvss >= 9 ? 'red' : cvss >= 7 ? 'amber' : 'blue')
-const columns: Array<Column<Vulnerability>> = [
-  {
-    key: 'cve',
-    header: 'CVE',
-    render: (row) => (
-      <div className="flex items-center gap-2">
-        <span className="font-medium text-ink">{row.cve}</span>
-        {row.kev && (
-          <Badge tone="red" className="uppercase tracking-wide">
-            KEV
-          </Badge>
-        )}
-      </div>
-    ),
-  },
-  {
-    key: 'title',
-    header: 'Vulnerability',
-    render: (row) => (
-      <div className="min-w-0 max-w-[300px]">
-        <p className="truncate text-ink">{row.title}</p>
-        <p className="truncate text-2xs text-ink-faint">
-          {row.asset} · found {row.discovered}
-        </p>
-      </div>
-    ),
-  },
-  {
-    key: 'cvss',
-    header: 'CVSS',
-    align: 'right',
-    width: '92px',
-    render: (row) => (
-      <Badge tone={cvssTone(row.cvss)} className="tabular-nums">
-        {row.cvss.toFixed(1)}
-      </Badge>
-    ),
-  },
-  {
-    key: 'epss',
-    header: 'EPSS',
-    align: 'right',
-    width: '96px',
-    render: (row) => (
-      <div className="flex items-center justify-end gap-2">
-        <span className="h-1.5 w-10 overflow-hidden rounded-full bg-white/[0.06]">
-          <span
-            className="block h-full rounded-full"
-            style={{ width: `${row.epss * 100}%`, backgroundColor: accentHex[riskAccent(row.epss * 100)] }}
-            aria-hidden="true"
-          />
-        </span>
-        <span className="w-8 text-right tabular-nums text-ink-soft">{(row.epss * 100).toFixed(0)}%</span>
-      </div>
-    ),
-  },
-  {
-    key: 'patch',
-    header: 'Fix',
-    render: (row) => (
-      <Badge tone={row.patchAvailable ? 'green' : 'red'} dot>
-        {row.patchAvailable ? 'Patch ready' : 'No patch'}
-      </Badge>
-    ),
-  },
-  {
-    key: 'contribution',
-    header: '₹ Contribution',
-    align: 'right',
-    render: (row) => (
-      <span className="font-medium tabular-nums text-ink">{formatINR(row.contribution)}</span>
-    ),
-  },
-]
+
+function buildColumns(format: MoneyFormatter, symbol: string): Array<Column<Vulnerability>> {
+  return [
+    {
+      key: 'cve',
+      header: 'CVE',
+      render: (row) => (
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-ink">{row.cve}</span>
+          {row.kev && (
+            <Badge tone="red" className="uppercase tracking-wide">
+              KEV
+            </Badge>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'title',
+      header: 'Vulnerability',
+      render: (row) => (
+        <div className="min-w-0 max-w-[300px]">
+          <p className="truncate text-ink">{row.title}</p>
+          <p className="truncate text-2xs text-ink-faint">
+            {row.asset} · found {row.discovered}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'cvss',
+      header: 'CVSS',
+      align: 'right',
+      width: '92px',
+      render: (row) => (
+        <Badge tone={cvssTone(row.cvss)} className="tabular-nums">
+          {row.cvss.toFixed(1)}
+        </Badge>
+      ),
+    },
+    {
+      key: 'epss',
+      header: 'EPSS',
+      align: 'right',
+      width: '96px',
+      render: (row) => (
+        <div className="flex items-center justify-end gap-2">
+          <span className="h-1.5 w-10 overflow-hidden rounded-full bg-white/[0.06]">
+            <span
+              className="block h-full rounded-full"
+              style={{ width: `${row.epss * 100}%`, backgroundColor: accentHex[riskAccent(row.epss * 100)] }}
+              aria-hidden="true"
+            />
+          </span>
+          <span className="w-8 text-right tabular-nums text-ink-soft">{(row.epss * 100).toFixed(0)}%</span>
+        </div>
+      ),
+    },
+    {
+      key: 'patch',
+      header: 'Fix',
+      render: (row) => (
+        <Badge tone={row.patchAvailable ? 'green' : 'red'} dot>
+          {row.patchAvailable ? 'Patch ready' : 'No patch'}
+        </Badge>
+      ),
+    },
+    {
+      key: 'contribution',
+      header: `${symbol} Contribution`,
+      align: 'right',
+      render: (row) => <span className="font-medium tabular-nums text-ink">{format(row.contribution)}</span>,
+    },
+  ]
+}
 
 export default function VulnerabilitiesPage() {
+  const { format, meta, chart: chartScale } = useCurrency()
+  const columns = useMemo(() => buildColumns(format, meta.symbol), [format, meta.symbol])
+
   const top = useMemo(
     () =>
       [...vulnerabilities]
@@ -91,10 +98,10 @@ export default function VulnerabilitiesPage() {
         .slice(0, 8)
         .map((row) => ({
           name: row.cve.replace('CVE-', ''),
-          value: row.contribution / 10_000_000,
+          value: row.contribution / chartScale.divisor,
           tone: cvssTone(row.cvss),
         })),
-    [],
+    [chartScale.divisor],
   )
 
   const stats = useMemo(() => {
@@ -108,7 +115,7 @@ export default function VulnerabilitiesPage() {
   }, [])
 
   const summary = [
-    { label: 'Modelled CVE contribution', value: formatINR(stats.totalContribution), tone: 'red' as const },
+    { label: 'Modelled CVE contribution', value: format(stats.totalContribution), tone: 'red' as const },
     { label: 'Critical (CVSS ≥ 9)', value: String(stats.critical), tone: 'red' as const },
     { label: 'In CISA KEV', value: String(stats.kev), tone: 'amber' as const },
     { label: 'No vendor patch', value: String(stats.noPatch), tone: 'amber' as const },
@@ -134,7 +141,7 @@ export default function VulnerabilitiesPage() {
           <Card
             className="h-full"
             title="Contribution by CVE"
-            subtitle="Modelled annual loss, ₹ crore"
+            subtitle={`Modelled annual loss, ${meta.symbol} ${chartScale.label}`}
             icon={<Bug className="h-4 w-4" aria-hidden="true" />}
           >
             <div className="h-[262px] w-full">
@@ -166,7 +173,7 @@ export default function VulnerabilitiesPage() {
                         >
                           <p className="mb-1 font-semibold text-ink">CVE-{label}</p>
                           <p className="tabular-nums text-ink-soft">
-                            {formatINR(value * 10_000_000)} /yr modelled loss
+                            {format(value * chartScale.divisor)} /yr modelled loss
                           </p>
                         </div>
                       )

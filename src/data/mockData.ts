@@ -1,6 +1,9 @@
 import type {
   ComplianceFramework,
   ControlHealth,
+  CurrencyCode,
+  CurrencyMeta,
+  ExchangeRates,
   ForecastInsight,
   ForecastPoint,
   Integration,
@@ -16,6 +19,47 @@ import type {
   Vulnerability,
   WhatIfLever,
 } from '../types'
+
+/* ------------------------------------------------------------------ */
+/* Currency                                                            */
+/* ------------------------------------------------------------------ */
+
+export const currencyBase: CurrencyCode = 'INR'
+
+const inrCurrency: CurrencyMeta = {
+  code: 'INR',
+  name: 'Indian Rupee',
+  symbol: '₹',
+  locale: 'en-IN',
+  units: 'indian',
+}
+
+export const currencies: CurrencyMeta[] = [
+  inrCurrency,
+  { code: 'USD', name: 'US Dollar', symbol: '$', locale: 'en-US', units: 'international' },
+  { code: 'EUR', name: 'Euro', symbol: '€', locale: 'de-DE', units: 'international' },
+  { code: 'GBP', name: 'British Pound', symbol: '£', locale: 'en-GB', units: 'international' },
+  { code: 'AED', name: 'UAE Dirham', symbol: 'د.إ', locale: 'en-AE', units: 'international' },
+  { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$', locale: 'en-SG', units: 'international' },
+]
+
+export const defaultCurrency: CurrencyMeta = inrCurrency
+
+/**
+ * Indicative offline rates — units of currency per 1 INR.
+ * Used before the live rate request resolves and whenever it fails.
+ */
+export const fallbackRates: ExchangeRates = {
+  INR: 1,
+  USD: 0.0118,
+  EUR: 0.0109,
+  GBP: 0.0093,
+  AED: 0.0433,
+  SGD: 0.0159,
+}
+
+/** Free, keyless FX endpoint — rates are expressed per 1 INR. */
+export const exchangeRateEndpoint = 'https://open.er-api.com/v6/latest/INR'
 
 /* ------------------------------------------------------------------ */
 /* Navigation                                                          */

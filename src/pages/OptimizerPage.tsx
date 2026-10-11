@@ -16,7 +16,7 @@ import clsx from 'clsx'
 import { Badge, Card, ProgressBar } from '../components/ui'
 import { optimizerBudget, recommendedControls } from '../data/mockData'
 import { chart, colors } from '../constants/theme'
-import { formatINR } from '../utils'
+import { useCurrency } from '../context/CurrencyContext'
 import type { RecommendedControl } from '../types'
 
 const rosiOf = (control: RecommendedControl): number =>
@@ -32,6 +32,7 @@ type Ranked = RecommendedControl & { rosi: number }
 type Enriched = Ranked & { selected: boolean }
 
 export default function OptimizerPage() {
+  const { format, meta, chart: chartScale } = useCurrency()
   const [budget, setBudget] = useState(optimizerBudget.initial)
 
   const ranked = useMemo<Ranked[]>(
@@ -60,10 +61,10 @@ export default function OptimizerPage() {
       runningReduction += control.riskReduction
       return {
         name: control.name.split(' ').slice(0, 2).join(' '),
-        cost: control.cost / 10_000_000,
-        reduction: control.riskReduction / 10_000_000,
-        cumulativeCost: runningCost / 10_000_000,
-        cumulativeReduction: runningReduction / 10_000_000,
+        cost: control.cost / chartScale.divisor,
+        reduction: control.riskReduction / chartScale.divisor,
+        cumulativeCost: runningCost / chartScale.divisor,
+        cumulativeReduction: runningReduction / chartScale.divisor,
         inPlan: picked.some((item) => item.id === control.id),
       }
     })
@@ -76,15 +77,15 @@ export default function OptimizerPage() {
       selectedRosi: spent > 0 ? ((totalReduction - spent) / spent) * 100 : 0,
       chartData: data,
     }
-  }, [budget, ranked])
+  }, [budget, ranked, chartScale.divisor])
 
   const budgetPct = ((budget - optimizerBudget.min) / (optimizerBudget.max - optimizerBudget.min)) * 100
   const selectedIds = new Set(selected.map((control) => control.id))
 
   const summary = [
-    { label: 'Annual budget', value: formatINR(budget), tone: 'blue' as const, note: 'FY27 defence envelope' },
-    { label: 'Allocated', value: formatINR(selectedCost), tone: 'green' as const, note: `${pickedLabel(selected.length)}` },
-    { label: 'EAL avoided', value: formatINR(selectedReduction), tone: 'amber' as const, note: 'per year, modelled' },
+    { label: 'Annual budget', value: format(budget), tone: 'blue' as const, note: 'FY27 defence envelope' },
+    { label: 'Allocated', value: format(selectedCost), tone: 'green' as const, note: `${pickedLabel(selected.length)}` },
+    { label: 'EAL avoided', value: format(selectedReduction), tone: 'amber' as const, note: 'per year, modelled' },
     { label: 'Blended ROSI', value: `${selectedRosi.toFixed(0)}%`, tone: 'green' as const, note: 'risk reduction vs spend' },
   ]
 
@@ -95,11 +96,11 @@ export default function OptimizerPage() {
           <div className="flex items-center gap-2">
             <Wallet className="h-4 w-4 text-ink-soft" aria-hidden="true" />
             <p className="text-[13px] font-semibold text-ink">Available budget</p>
-            <Badge tone="blue">{formatINR(budget)}</Badge>
+            <Badge tone="blue">{format(budget)}</Badge>
           </div>
           <p className="text-2xs text-ink-faint">
             Greedy ROSI-ranked selection · unspent budget{' '}
-            <span className="tabular-nums text-ink-soft">{formatINR(Math.max(0, budget - selectedCost))}</span>
+            <span className="tabular-nums text-ink-soft">{format(Math.max(0, budget - selectedCost))}</span>
           </p>
         </div>
         <input
@@ -113,14 +114,14 @@ export default function OptimizerPage() {
           className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/[0.08] accent-blue"
         />
         <div className="mt-2 flex items-center justify-between text-2xs text-ink-faint">
-          <span>{formatINR(optimizerBudget.min)}</span>
+          <span>{format(optimizerBudget.min)}</span>
           <ProgressBar
             value={budgetPct}
             color={colors.blue}
             className="mx-3 max-w-[220px]"
             label="Budget utilisation"
           />
-          <span>{formatINR(optimizerBudget.max)}</span>
+          <span>{format(optimizerBudget.max)}</span>
         </div>
       </div>
 
@@ -148,7 +149,7 @@ export default function OptimizerPage() {
           <Card
             className="h-full"
             title="Investment vs Risk Reduction"
-            subtitle="Per control, ROSI-ranked · ₹ crore"
+            subtitle={`Per control, ROSI-ranked · ${meta.symbol} ${chartScale.label}`}
             icon={<TrendingUp className="h-4 w-4" aria-hidden="true" />}
             action={
               <div className="flex items-center gap-3 text-2xs text-ink-soft">
@@ -196,9 +197,9 @@ export default function OptimizerPage() {
                         >
                           <p className="mb-1.5 font-semibold text-ink">{row.name}</p>
                           <dl className="space-y-1">
-                            <MetricRow label="Investment" value={formatINR(row.cost * 10_000_000)} />
-                            <MetricRow label="Risk reduction" value={formatINR(row.reduction * 10_000_000)} />
-                            <MetricRow label="Cumulative" value={formatINR(row.cumulativeCost * 10_000_000)} />
+                            <MetricRow label="Investment" value={format(row.cost * chartScale.divisor)} />
+                            <MetricRow label="Risk reduction" value={format(row.reduction * chartScale.divisor)} />
+                            <MetricRow label="Cumulative" value={format(row.cumulativeCost * chartScale.divisor)} />
                           </dl>
                           <p className="mt-1.5 text-2xs text-ink-faint">
                             {row.inPlan ? 'Included in recommended plan' : 'Below budget line — deferred'}
@@ -223,7 +224,7 @@ export default function OptimizerPage() {
                   />
                   <ReferenceLine
                     yAxisId="left"
-                    y={budget / 10_000_000}
+                    y={budget / chartScale.divisor}
                     stroke={colors.amber}
                     strokeDasharray="4 4"
                     label={{ value: 'budget', position: 'right', fill: chart.axis, fontSize: 9 }}
@@ -238,7 +239,7 @@ export default function OptimizerPage() {
           <Card
             className="h-full"
             title="Recommended Controls"
-            subtitle={`${selected.length} controls within ${formatINR(budget)}`}
+            subtitle={`${selected.length} controls within ${format(budget)}`}
             icon={<Target className="h-4 w-4" aria-hidden="true" />}
             action={<Badge tone="green" dot>ROSI optimised</Badge>}
           >
@@ -274,12 +275,12 @@ export default function OptimizerPage() {
 
                   <div className="hidden shrink-0 text-right sm:block">
                     <p className="text-2xs text-ink-faint">Cost</p>
-                    <p className="text-[11.5px] font-medium tabular-nums text-ink">{formatINR(control.cost)}</p>
+                    <p className="text-[11.5px] font-medium tabular-nums text-ink">{format(control.cost)}</p>
                   </div>
                   <div className="hidden shrink-0 text-right sm:block">
                     <p className="text-2xs text-ink-faint">Δ Risk</p>
                     <p className="text-[11.5px] font-medium tabular-nums text-green">
-                      {formatINR(control.riskReduction)}
+                      {format(control.riskReduction)}
                     </p>
                   </div>
                   <div className="shrink-0 text-right">

@@ -1,3 +1,5 @@
+import type { CurrencyMeta } from '../types'
+
 /**
  * Indian currency formatter tuned for dense dashboards.
  * 4000000 -> "₹40 L", 12500000 -> "₹1.25 Cr", 85000 -> "₹85 K"
@@ -28,6 +30,63 @@ export function formatINR(value: number, options: { decimals?: number; compact?:
   }
 
   return `${sign}₹${Math.round(abs)}`
+}
+
+/**
+ * Currency-aware formatter. Input is always the base (INR) amount; the active
+ * rate converts it, then the target currency's symbol and unit system are used.
+ * INR -> "$148.15K" style output for international currencies.
+ */
+export function formatMoney(
+  amountInInr: number,
+  meta: CurrencyMeta,
+  rate: number,
+  options: { decimals?: number; compact?: boolean } = {},
+): string {
+  const symbol = meta.symbol
+  const converted = amountInInr * rate
+  if (!Number.isFinite(converted)) return `${symbol}0`
+
+  const { compact = true } = options
+  const sign = converted < 0 ? '-' : ''
+  const abs = Math.abs(converted)
+
+  if (!compact) {
+    return `${sign}${symbol}${abs.toLocaleString(meta.locale, { maximumFractionDigits: options.decimals ?? 0 })}`
+  }
+
+  const units: Array<{ limit: number; suffix: string; decimals: number }> =
+    meta.units === 'indian'
+      ? [
+          { limit: 1e7, suffix: ' Cr', decimals: 2 },
+          { limit: 1e5, suffix: ' L', decimals: 1 },
+          { limit: 1e3, suffix: ' K', decimals: 1 },
+        ]
+      : [
+          { limit: 1e12, suffix: 'T', decimals: 2 },
+          { limit: 1e9, suffix: 'B', decimals: 2 },
+          { limit: 1e6, suffix: 'M', decimals: 2 },
+          { limit: 1e3, suffix: 'K', decimals: 1 },
+        ]
+
+  for (const unit of units) {
+    if (abs >= unit.limit) {
+      const scaled = abs / unit.limit
+      const decimals = options.decimals ?? trailingDecimals(scaled, unit.decimals)
+      return `${sign}${symbol}${trim(scaled.toFixed(decimals))}${unit.suffix}`
+    }
+  }
+
+  const fallbackDecimals = options.decimals ?? (abs > 0 && abs < 10 ? 2 : 0)
+  return `${sign}${symbol}${abs.toLocaleString(meta.locale, { maximumFractionDigits: fallbackDecimals })}`
+}
+
+/**
+ * Divisor + label used to scale monetary chart axes for a currency.
+ * INR reads in crore (1e7); international currencies read in million (1e6).
+ */
+export function chartUnit(meta: CurrencyMeta): { divisor: number; label: string } {
+  return meta.units === 'indian' ? { divisor: 1e7, label: 'crore' } : { divisor: 1e6, label: 'million' }
 }
 
 function trailingDecimals(value: number, max: number): number {

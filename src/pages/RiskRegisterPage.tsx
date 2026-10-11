@@ -3,7 +3,7 @@ import { ClipboardList, Sigma } from 'lucide-react'
 import clsx from 'clsx'
 import { Badge, Card, Table, type Column } from '../components/ui'
 import { riskScenarios, riskStatusFilters, riskScore } from '../data/mockData'
-import { formatINR } from '../utils'
+import { useCurrency } from '../context/CurrencyContext'
 import type { AccentColor, Likelihood, RiskScenario, RiskStatus } from '../types'
 
 const likelihoodTone: Record<Likelihood, AccentColor> = {
@@ -28,69 +28,73 @@ const statusLabel: Record<RiskStatus, string> = {
   closed: 'Closed',
 }
 
-const columns: Array<Column<RiskScenario>> = [
-  {
-    key: 'scenario',
-    header: 'Scenario',
-    render: (row) => (
-      <div className="min-w-0 max-w-[280px]">
-        <p className="truncate font-medium text-ink">{row.scenario}</p>
-        <p className="truncate text-2xs text-ink-faint">
-          {row.id} · {row.threatActor} · {row.owner}
-        </p>
-      </div>
-    ),
-  },
-  {
-    key: 'asset',
-    header: 'Asset',
-    render: (row) => <span className="text-ink-soft">{row.asset}</span>,
-  },
-  {
-    key: 'likelihood',
-    header: 'Likelihood',
-    width: '148px',
-    render: (row) => (
-      <div className="flex items-center gap-2">
-        <Badge tone={likelihoodTone[row.likelihood]} dot className="capitalize">
-          {row.likelihood.replace('-', ' ')}
+type MoneyFormatter = ReturnType<typeof useCurrency>['format']
+
+function buildColumns(format: MoneyFormatter): Array<Column<RiskScenario>> {
+  return [
+    {
+      key: 'scenario',
+      header: 'Scenario',
+      render: (row) => (
+        <div className="min-w-0 max-w-[280px]">
+          <p className="truncate font-medium text-ink">{row.scenario}</p>
+          <p className="truncate text-2xs text-ink-faint">
+            {row.id} · {row.threatActor} · {row.owner}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'asset',
+      header: 'Asset',
+      render: (row) => <span className="text-ink-soft">{row.asset}</span>,
+    },
+    {
+      key: 'likelihood',
+      header: 'Likelihood',
+      width: '148px',
+      render: (row) => (
+        <div className="flex items-center gap-2">
+          <Badge tone={likelihoodTone[row.likelihood]} dot className="capitalize">
+            {row.likelihood.replace('-', ' ')}
+          </Badge>
+          <span className="text-2xs tabular-nums text-ink-faint">{row.likelihoodPct}%</span>
+        </div>
+      ),
+    },
+    {
+      key: 'loss',
+      header: 'Single Loss',
+      align: 'right',
+      render: (row) => <span className="tabular-nums text-ink-soft">{format(row.singleLoss)}</span>,
+    },
+    {
+      key: 'eal',
+      header: 'EAL',
+      align: 'right',
+      render: (row) => <span className="font-medium tabular-nums text-ink">{format(row.eal)}</span>,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (row) => (
+        <Badge tone={statusTone[row.status]} dot>
+          {statusLabel[row.status]}
         </Badge>
-        <span className="text-2xs tabular-nums text-ink-faint">{row.likelihoodPct}%</span>
-      </div>
-    ),
-  },
-  {
-    key: 'loss',
-    header: 'Single Loss',
-    align: 'right',
-    render: (row) => <span className="tabular-nums text-ink-soft">{formatINR(row.singleLoss)}</span>,
-  },
-  {
-    key: 'eal',
-    header: 'EAL',
-    align: 'right',
-    render: (row) => (
-      <span className="font-medium tabular-nums text-ink">{formatINR(row.eal)}</span>
-    ),
-  },
-  {
-    key: 'status',
-    header: 'Status',
-    render: (row) => (
-      <Badge tone={statusTone[row.status]} dot>
-        {statusLabel[row.status]}
-      </Badge>
-    ),
-  },
-  {
-    key: 'review',
-    header: 'Last Review',
-    align: 'right',
-    render: (row) => <span className="text-2xs text-ink-faint">{row.lastReview}</span>,
-  },
-]
+      ),
+    },
+    {
+      key: 'review',
+      header: 'Last Review',
+      align: 'right',
+      render: (row) => <span className="text-2xs text-ink-faint">{row.lastReview}</span>,
+    },
+  ]
+}
 
 export default function RiskRegisterPage() {
+  const { format } = useCurrency()
+  const columns = useMemo(() => buildColumns(format), [format])
   const [filter, setFilter] = useState<(typeof riskStatusFilters)[number]>('all')
 
   const rows = useMemo(
@@ -109,9 +113,9 @@ export default function RiskRegisterPage() {
 
   const summary = [
     { label: 'Register entries', value: String(totals.count), tone: 'blue' as const, note: '10 modelled scenarios' },
-    { label: 'Gross EAL (pre-control)', value: formatINR(totals.eal), tone: 'red' as const, note: `${totals.avgPct.toFixed(1)}% of sum of loss` },
-    { label: 'Sum of Insured Loss', value: formatINR(totals.sli), tone: 'amber' as const, note: 'Worst-case aggregation' },
-    { label: 'Portfolio VaR 95%', value: formatINR(riskScore.valueAtRisk95), tone: 'green' as const, note: '1-in-20 year outcome' },
+    { label: 'Gross EAL (pre-control)', value: format(totals.eal), tone: 'red' as const, note: `${totals.avgPct.toFixed(1)}% of sum of loss` },
+    { label: 'Sum of Insured Loss', value: format(totals.sli), tone: 'amber' as const, note: 'Worst-case aggregation' },
+    { label: 'Portfolio VaR 95%', value: format(riskScore.valueAtRisk95), tone: 'green' as const, note: '1-in-20 year outcome' },
   ]
 
   return (
@@ -166,7 +170,7 @@ export default function RiskRegisterPage() {
             EAL = single loss × likelihood, before existing controls.
           </span>
           <span>
-            Residual EAL on the Dashboard is <span className="font-medium text-ink-soft">{formatINR(riskScore.expectedAnnualLoss)}</span>{' '}
+            Residual EAL on the Dashboard is <span className="font-medium text-ink-soft">{format(riskScore.expectedAnnualLoss)}</span>{' '}
             after a {controlDiscount}% control-effectiveness discount.
           </span>
         </div>

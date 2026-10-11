@@ -4,13 +4,15 @@ import { ArrowRight, RotateCcw, Scale, TrendingDown } from 'lucide-react'
 import { Badge, Button, Card, ProgressBar } from '../components/ui'
 import { riskScore, whatIfLevers } from '../data/mockData'
 import { accentHex, chart, colors } from '../constants/theme'
-import { clamp, formatINR } from '../utils'
+import { useCurrency } from '../context/CurrencyContext'
+import { clamp } from '../utils'
 
 const MAX_REDUCTION = 0.92
 
 type Intensity = Record<string, number>
 
 export default function WhatIfPage() {
+  const { format, meta, chart: chartScale } = useCurrency()
   const [intensity, setIntensity] = useState<Intensity>(() =>
     Object.fromEntries(whatIfLevers.map((lever) => [lever.id, 0])),
   )
@@ -41,8 +43,8 @@ export default function WhatIfPage() {
   }, [intensity])
 
   const comparison = [
-    { name: 'EAL / yr', before: riskScore.expectedAnnualLoss / 10_000_000, after: model.ealAfter / 10_000_000 },
-    { name: 'VaR 95%', before: riskScore.valueAtRisk95 / 10_000_000, after: model.varAfter / 10_000_000 },
+    { name: 'EAL / yr', before: riskScore.expectedAnnualLoss / chartScale.divisor, after: model.ealAfter / chartScale.divisor },
+    { name: 'VaR 95%', before: riskScore.valueAtRisk95 / chartScale.divisor, after: model.varAfter / chartScale.divisor },
   ]
 
   const setLever = (id: string, value: number) => setIntensity((prev) => ({ ...prev, [id]: value }))
@@ -96,7 +98,7 @@ export default function WhatIfPage() {
               </div>
               <div className="text-right">
                 <p className="text-2xs text-ink-soft">Blended spend</p>
-                <p className="text-[15px] font-semibold text-ink tabular-nums">{formatINR(model.investment)}</p>
+                <p className="text-[15px] font-semibold text-ink tabular-nums">{format(model.investment)}</p>
               </div>
             </div>
             <div className="mt-3 space-y-1.5">
@@ -150,7 +152,7 @@ export default function WhatIfPage() {
                         <p className="truncate text-2xs text-ink-faint">{lever.description}</p>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
-                        <span className="text-2xs tabular-nums text-ink-soft">{formatINR(lever.cost)}</span>
+                        <span className="text-2xs tabular-nums text-ink-soft">{format(lever.cost)}</span>
                         <Badge tone={tone} className="w-11 justify-center tabular-nums">
                           {value}%
                         </Badge>
@@ -195,11 +197,11 @@ export default function WhatIfPage() {
           <Card
             className="h-full"
             title="Before / After"
-            subtitle="Modelled loss, ₹ crore"
+            subtitle={`Modelled loss, ${meta.symbol} ${chartScale.label}`}
             icon={<TrendingDown className="h-4 w-4" aria-hidden="true" />}
             action={
               <Badge tone={model.ealSaved > 0 ? 'green' : 'neutral'}>
-                {formatINR(model.ealSaved)} saved /yr
+                {format(model.ealSaved)} saved /yr
               </Badge>
             }
           >
@@ -238,7 +240,7 @@ export default function WhatIfPage() {
                               />
                               <span className="capitalize">{String(item.dataKey)}</span>
                               <span className="ml-auto font-medium tabular-nums text-ink">
-                                {formatINR((typeof item.value === 'number' ? item.value : 0) * 10_000_000)}
+                                {format((typeof item.value === 'number' ? item.value : 0) * chartScale.divisor)}
                               </span>
                             </p>
                           ))}
@@ -266,7 +268,7 @@ export default function WhatIfPage() {
               </div>
               <div className="flex items-center justify-between text-2xs">
                 <span className="text-ink-soft">Blended investment</span>
-                <span className="font-medium tabular-nums text-ink">{formatINR(model.investment)}</span>
+                <span className="font-medium tabular-nums text-ink">{format(model.investment)}</span>
               </div>
               <div className="flex items-center justify-between text-2xs">
                 <span className="text-ink-soft">Payback</span>
@@ -291,6 +293,7 @@ function DeltaCard({
   after: number
   saved: number
 }) {
+  const { format } = useCurrency()
   const deltaPct = before > 0 ? ((after - before) / before) * 100 : 0
 
   return (
@@ -309,21 +312,21 @@ function DeltaCard({
         <div>
           <p className="text-2xs text-ink-soft">Before</p>
           <p className="text-[15px] font-medium tabular-nums text-ink-soft line-through decoration-red/50">
-            {formatINR(before)}
+            {format(before)}
           </p>
         </div>
         <ArrowRight className="mb-1 h-4 w-4 shrink-0 text-ink-faint" aria-hidden="true" />
         <div className="text-right">
           <p className="text-2xs text-ink-soft">After</p>
           <p className="text-[22px] font-semibold leading-tight tracking-tight text-ink tabular-nums">
-            {formatINR(after)}
+            {format(after)}
           </p>
         </div>
       </div>
       <div className="mt-3">
         <div className="mb-1.5 flex items-center justify-between text-2xs">
           <span className="text-ink-faint">Risk eliminated</span>
-          <span className="font-medium tabular-nums text-green">{formatINR(saved)}</span>
+          <span className="font-medium tabular-nums text-green">{format(saved)}</span>
         </div>
         <ProgressBar value={before > 0 ? (saved / before) * 100 : 0} color={colors.green} label={`${label} reduction`} />
       </div>

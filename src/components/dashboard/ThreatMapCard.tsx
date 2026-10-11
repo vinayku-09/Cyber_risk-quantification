@@ -3,7 +3,7 @@ import { Globe2, MapPin } from 'lucide-react'
 import clsx from 'clsx'
 import { Badge, Card } from '../ui'
 import { mapMarkers, mapTotals, timeFilters } from '../../data/mockData'
-import { formatINR } from '../../utils'
+import { useCurrency } from '../../context/CurrencyContext'
 import type { MapMarker, Severity } from '../../types'
 
 /* ---------------------------------------------------------------- */
@@ -72,6 +72,7 @@ const severityRadius: Record<Severity, number> = {
 }
 
 export function ThreatMapCard() {
+  const { format } = useCurrency()
   const [filter, setFilter] = useState('ALL')
   const [activeId, setActiveId] = useState<string>(mapMarkers[0]?.id ?? '')
 
@@ -113,7 +114,7 @@ export function ThreatMapCard() {
           <span className="font-semibold text-ink">{totals.events}</span> events
         </span>
         <span className="tabular-nums">
-          <span className="font-semibold text-ink">{formatINR(totals.value)}</span> exposure
+          <span className="font-semibold text-ink">{format(totals.value)}</span> exposure
         </span>
         <span className="flex items-center gap-2.5">
           {(['critical', 'high', 'medium', 'low'] as const).map((severity) => (
@@ -170,7 +171,7 @@ export function ThreatMapCard() {
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <Badge tone={active.severity === 'critical' || active.severity === 'high' ? 'red' : 'blue'}>
-                {formatINR(active.value)}
+                {format(active.value)}
               </Badge>
             </div>
           </>
@@ -191,6 +192,7 @@ function Marker({
   active: boolean
   onHover: () => void
 }) {
+  const { format } = useCurrency()
   const color = severityColor[marker.severity]
   const left = projectX(marker.lon)
   const top = projectY(marker.lat) * 0.62
@@ -200,7 +202,7 @@ function Marker({
       type="button"
       onMouseEnter={onHover}
       onFocus={onHover}
-      aria-label={`${marker.label} — ${marker.events} events, ${formatINR(marker.value)}`}
+      aria-label={`${marker.label} — ${marker.events} events, ${format(marker.value)}`}
       className="absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer p-1.5"
       style={{ left: `${left}%`, top: `${top}%` }}
     >

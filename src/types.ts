@@ -1,5 +1,23 @@
 export type AccentColor = 'green' | 'blue' | 'amber' | 'red'
 
+/* ---------------- Currency ---------------- */
+
+export type CurrencyCode = 'INR' | 'USD' | 'EUR' | 'GBP' | 'AED' | 'SGD'
+
+export interface CurrencyMeta {
+  code: CurrencyCode
+  name: string
+  symbol: string
+  locale: string
+  /** 'indian' formats in thousand/lakh/crore; 'international' in thousand/million/billion. */
+  units: 'indian' | 'international'
+}
+
+/** Units of each currency per 1 INR (INR is always 1). */
+export type ExchangeRates = Record<CurrencyCode, number>
+
+export type RateStatus = 'live' | 'fallback'
+
 export type NavKey =
   | 'dashboard'
   | 'risk-register'

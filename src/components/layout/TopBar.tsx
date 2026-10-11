@@ -2,7 +2,7 @@ import { useLocation } from 'react-router-dom'
 import { Bell, Menu, Search, Sparkles } from 'lucide-react'
 import { pageMeta } from '../../data/mockData'
 import { layout } from '../../constants/theme'
-import { Button } from '../ui'
+import { Button, CurrencySelector } from '../ui'
 
 interface TopBarProps {
   onOpenMobile: () => void
@@ -48,6 +48,8 @@ export function TopBar({ onOpenMobile }: TopBarProps) {
           ⌘K
         </kbd>
       </div>
+
+      <CurrencySelector />
 
       <Button variant="primary" size="sm" icon={<Sparkles className="h-3.5 w-3.5" aria-hidden="true" />}>
         Run AI

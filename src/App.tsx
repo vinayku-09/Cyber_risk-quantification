@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from './components/layout/AppLayout'
+import { CurrencyProvider } from './context/CurrencyContext'
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const RiskRegisterPage = lazy(() => import('./pages/RiskRegisterPage'))
@@ -30,22 +31,24 @@ function Routed({ children }: { children: ReactNode }) {
 
 export function App() {
   return (
-    <BrowserRouter>
-      <AppLayout>
-        <Routed>
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/risk-register" element={<RiskRegisterPage />} />
-            <Route path="/vulnerabilities" element={<VulnerabilitiesPage />} />
-            <Route path="/what-if" element={<WhatIfPage />} />
-            <Route path="/optimizer" element={<OptimizerPage />} />
-            <Route path="/compliance" element={<CompliancePage />} />
-            <Route path="/integrations" element={<IntegrationsPage />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </Routed>
-      </AppLayout>
-    </BrowserRouter>
+    <CurrencyProvider>
+      <BrowserRouter>
+        <AppLayout>
+          <Routed>
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/risk-register" element={<RiskRegisterPage />} />
+              <Route path="/vulnerabilities" element={<VulnerabilitiesPage />} />
+              <Route path="/what-if" element={<WhatIfPage />} />
+              <Route path="/optimizer" element={<OptimizerPage />} />
+              <Route path="/compliance" element={<CompliancePage />} />
+              <Route path="/integrations" element={<IntegrationsPage />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Routed>
+        </AppLayout>
+      </BrowserRouter>
+    </CurrencyProvider>
   )
 }

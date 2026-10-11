@@ -3,7 +3,7 @@ import { Badge, Card, ProgressBar } from '../ui'
 import { RiskGauge } from './RiskGauge'
 import { colors } from '../../constants/theme'
 import { riskScore } from '../../data/mockData'
-import { formatINR } from '../../utils'
+import { useCurrency } from '../../context/CurrencyContext'
 import type { AccentColor, ControlStatus } from '../../types'
 
 const statusTone: Record<ControlStatus, AccentColor> = {
@@ -34,6 +34,8 @@ const statToneBar: Record<AccentColor, string> = {
 }
 
 export function EnterpriseRiskScoreCard() {
+  const { format } = useCurrency()
+
   return (
     <Card
       className="h-full"
@@ -66,7 +68,7 @@ export function EnterpriseRiskScoreCard() {
                 <div className="min-w-0">
                   <p className="truncate text-2xs text-ink-soft">{stat.label}</p>
                   <p className="text-[15px] font-semibold tracking-tight text-ink tabular-nums">
-                    {formatINR(stat.value)}
+                    {format(stat.value)}
                     {stat.suffix ? (
                       <span className="ml-0.5 text-2xs font-normal text-ink-faint">{stat.suffix}</span>
                     ) : null}
